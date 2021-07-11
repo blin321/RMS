@@ -1,13 +1,15 @@
 import java.util.*;
 import java.time.*;
 
-public class Table{
+class Table {
     private int num;
     private int max_capacity;
     private int cur_capacity = 0;
     private long timeSeated;
-    private double bill = 0.0;
+    private ArrayList<Item> bill = new ArrayList<>();
     private String staff = "NONE";
+    private int pos_x = 0;
+    private int pos_y = 0;
 
     // Initializer for table
     public Table(int n, int max) {
@@ -68,30 +70,39 @@ public class Table{
         return min;
     }
 
-    // Frees up a table and returns 0. Prints error message and returns 1 if table is empty.
-    public int freeTable() {
-        if (cur_capacity == 0) {
-            System.out.print("Table is already empty.");
-            return 1;
-        }
-        else {
-            cur_capacity = 0;
-            timeSeated = 0;
-            // Resets bill of table to $0.00
-            bill = 0;
-        }
-        return 0;
-
+    // Frees up the table
+    public void empty() {
+        cur_capacity = 0;
+        timeSeated = 0;
+        // Resets bill of table to $0.00
+        bill = new ArrayList<>();
     }
 
     // Returns the bill
-    public double getBill() {
-        return bill;
+    public ArrayList<Item> getBill() {return bill;}
+
+    public double calcDue() {
+        double total = 0.0;
+        if (bill.size() < 1) {
+            return total;
+        }
+        Iterator<Item> iter = bill.iterator();
+        while (iter.hasNext()) {
+            total += iter.next().getPrice();
+        }
+        return total;
     }
 
     // Adds price of item to bill.
-    public void addToBill(double item) {
-        bill += item;
-    }
+    public void addToBill(Item order) {bill.add(order);}
+
+    public int getPos_x() { return pos_x; }
+
+    public int getPos_y() { return pos_y; }
+
+    public void setPos_x(int x) { pos_x = x; }
+
+    public void setPos_y(int y) { pos_y = y; }
+
 
 }

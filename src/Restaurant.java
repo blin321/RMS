@@ -4,6 +4,10 @@ import java.time.*;
 class Restaurant {
     private ArrayList<Table> tables = new ArrayList<>();
     private ArrayList<Waitstaff> waitstaff = new ArrayList<>();
+    private ArrayList<Item> inventory = new ArrayList<>();
+
+    // Tracks how many of the items in inventory have been sold.
+    private ArrayList<Integer> stats = new ArrayList<>();
 
     // Restaurant initializer
     public Restaurant(String[] staff) {
@@ -16,9 +20,7 @@ class Restaurant {
 
 
     // Returns waitstaff.
-    public ArrayList<Waitstaff> getWaitstaff() {
-        return waitstaff;
-    }
+    public ArrayList<Waitstaff> getWaitstaff() { return waitstaff; }
 
     public ArrayList<String> getStaffNames() {
         ArrayList<String> names = new ArrayList<>();
@@ -61,13 +63,13 @@ class Restaurant {
         }
     }
 
-    public int numOfTables() {
-        return tables.size();
+    public void addTable(int cap) {
+        tables.add(new Table(numOfTables() + 1, cap));
     }
 
-    public int numOfStaff() {
-        return waitstaff.size();
-    }
+    public int numOfTables() { return tables.size(); }
+
+    public int numOfStaff() { return waitstaff.size(); }
 
     // Retrieves table given its number
     public Table getTable(int num) { return tables.get(num - 1);}
@@ -91,13 +93,13 @@ class Restaurant {
     }
 
     // Retrieved an ArrayList of the empty tables.
-    public ArrayList<Integer> getEmptyTables() {
-        ArrayList<Integer> empty = new ArrayList<>();
+    public ArrayList<Table> getEmptyTables() {
+        ArrayList<Table> empty = new ArrayList<>();
         Iterator<Table> iter = tables.iterator();
         while (iter.hasNext()) {
             Table t = iter.next();
             if (t.getCur_capacity() == 0) {
-                empty.add(t.getNum());
+                empty.add(t);
             }
         }
         return empty;
@@ -107,6 +109,7 @@ class Restaurant {
     public void floor_status() {
         System.out.println("\n+---------------------------------------+");
         System.out.println("Floor Status: ");
+        reportInventory();
         Iterator<Waitstaff> iter = waitstaff.iterator();
         while (iter.hasNext()) {
             Waitstaff staff = iter.next();
@@ -116,7 +119,7 @@ class Restaurant {
         while (iter2.hasNext()) {
             Table t = iter2.next();
             System.out.println("\n+---------------------------------------+");
-            System.out.printf("Table #%d has %d guests. Bill is $%.2f", t.getNum(), t.getCur_capacity(), t.getBill());
+            System.out.printf("Table #%d has %d guests. Bill is $%.2f", t.getNum(), t.getCur_capacity(), t.calcDue());
             System.out.printf("\nElapsed seating time: %.3f", t.getSeatTime());
             System.out.printf("\nStaff member assigned to table: %s", t.getStaff());
             System.out.println("\n+---------------------------------------+");
@@ -194,9 +197,157 @@ class Restaurant {
         return 0;
     }
 
+    // Helper function that retrieves an item from the inventory
+    private Item getItem(String name) {
+        Item found = null;
+        Iterator<Item> iter = inventory.iterator();
+        while (iter.hasNext()) {
+            Item current = iter.next();
+            if (current.getName().equals(name)) {
+                return current;
+            }
+        }
+        return found;
+    }
+
+    public void remItem(String dish) {
+        if (checkInventory(getItem(dish))) {
+            int si = statIndex(dish);
+            inventory.remove(si);
+            stats.remove(si);
+        }
+    }
+
+    // Helper function that checks to see if an item in the inventoru shares the same name as a given dish
+    private boolean checkInventory(Item dish) {
+        Iterator<Item> iter = inventory.iterator();
+        while (iter.hasNext()) {
+            Item current = iter.next();
+            if (current.getName().equals(dish.getName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Adds an item to the inventory
+    public void addToInventory(Item dish) {
+        if (inventory.contains(dish)) {
+            return;
+        }
+        inventory.add(dish);
+        stats.add(0);
+        return;
+    }
+
+    // Retrieves the index of an inventory item based on its name
+    private int statIndex(String order) {
+        Iterator<Item> iter = inventory.iterator();
+        int si = -1;
+        int ci = -1;
+        while (iter.hasNext()) {
+            ci++;
+            Item current = iter.next();
+            if (current.getName().equals(order)) {
+                si = ci;
+            }
+        }
+        return si;
+    }
+
+    // Helper function that increments the units sold on an inventory item
+    private void addStat(String dish) {
+        int si = statIndex(dish);
+        stats.set(stats.get(si), stats.get(si) + 1);
+    }
+
+    // Adds an item to a table's bill
+    public int tblOrder(String dish, int table) {
+        Item order = getItem(dish);
+        if ((table > numOfTables()) || table <= 0) {
+            return 1;
+        }
+
+        if (!checkInventory(order)) {
+            return 1;
+        }
+
+        Table t = getTable(table);
+        t.addToBill(order);
+        return 0;
+    }
+
+
+    // Frees a table up
+    public int freeTable(int t) {
+        Table table = getTable(t);
+        if (table.getCur_capacity() == 0) {
+            System.out.print("Table is already empty.");
+            return 1;
+        }
+        Waitstaff staff = getStaff(table.getStaff());
+        staff.addToTotal(table.calcDue());
+        // Adjusting stat numbers on all items on the bill
+        ArrayList<Item> b = table.getBill();
+        Iterator<Item> biter = b.iterator();
+        while (biter.hasNext()) {
+            Item bItem = biter.next();
+            addStat(bItem.getName());
+        }
+        table.empty();
+        return 0;
+
+    }
+
+    // Removes table
+    public void remTable(int t) { tables.remove(getTable(t)); }
+
+    // Essentially a toString method for the inventory
+
+    public void reportInventory() {
+        String str = "";
+        Iterator<Item> iter = inventory.iterator();
+        int i = -1;
+        while (iter.hasNext()) {
+            i++;
+            Item current = iter.next();
+            str += current.getName() + "..." + String.format("$%.2f", current.getPrice());
+            str += String.format("...%d units sold\n", stats.get(i));
+        }
+        System.out.println(str);
+    }
+
+    // Recommends the table of a staff member that has sold the least amount of product
+    // and is not overdue for a break. Returns 1 as default.
+    public int recommend(int guests) {
+        ArrayList<Table> empties = getEmptyTables();
+        double min = getStaff(empties.get(0).getStaff()).getTotal();
+        Iterator<Table> iter = empties.iterator();
+        int rec = 1;
+        while (iter.hasNext()) {
+            Table current = iter.next();
+            Waitstaff s = getStaff(current.getStaff());
+            double tot = s.getTotal();
+            if (tot < min) {
+                // 5hr == 300 min for breaks
+                if (s.getTimeWorked() < 300.0) {
+                    rec = current.getNum();
+                    min = s.getTotal();
+                }
+            }
+        }
+        return rec;
+    }
+
+
+
+
+
     public static void main (String[] args) {
         Scanner scanner = new Scanner(System.in);
         Restaurant r = new Restaurant();
+
+        r.addToInventory(new Item("Chicken", 9.99));
         System.out.println("+---------------------------------------------+");
         if (r.numOfTables() < 1) {
             boolean done = false;
@@ -263,12 +414,12 @@ class Restaurant {
             }
             if (Integer.parseInt(input) == 0) {
                 exit = 1;
+
                 System.out.println("Closing Application...");
             }
         }
 
     }
-
 
 
 }
