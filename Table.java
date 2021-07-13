@@ -6,7 +6,7 @@ class Table {
     private int max_capacity;
     private int cur_capacity = 0;
     private long timeSeated;
-    private ArrayList<Item> bill = new ArrayList<>();
+    private Bill bill = new Bill();
     private String staff = "NONE";
     private int pos_x = 0;
     private int pos_y = 0;
@@ -75,26 +75,29 @@ class Table {
         cur_capacity = 0;
         timeSeated = 0;
         // Resets bill of table to $0.00
-        bill = new ArrayList<>();
+        bill = new Bill();
     }
 
     // Returns the bill
-    public ArrayList<Item> getBill() {return bill;}
+    public Bill getBill() {return bill;}
 
-    public double calcDue() {
-        double total = 0.0;
-        if (bill.size() < 1) {
-            return total;
-        }
-        Iterator<Item> iter = bill.iterator();
-        while (iter.hasNext()) {
-            total += iter.next().getPrice();
-        }
-        return total;
-    }
+    public double calcDue() { return this.bill.getBalance(); }
 
     // Adds price of item to bill.
-    public void addToBill(Item order) {bill.add(order);}
+    public void addToBill(Item order) { this.bill.addItem(order); }
+
+    public void remFromBill(Item order) {
+        ArrayList<Item> items = bill.getItems();
+        int index = 0;
+        Iterator<Item> iter = items.iterator();
+        while (iter.hasNext()) {
+            if (order.getName().equals(iter.next().getName())) {
+                bill.removeItem(index);
+                return;
+            }
+            index++;
+        }
+    }
 
     public int getPos_x() { return pos_x; }
 
