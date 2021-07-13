@@ -5,16 +5,8 @@ class Restaurant {
     private ArrayList<Table> tables = new ArrayList<>();
     private ArrayList<Waitstaff> waitstaff = new ArrayList<>();
     private ArrayList<Item> inventory = new ArrayList<>();
-
     // Tracks how many of the items in inventory have been sold.
     private ArrayList<Integer> stats = new ArrayList<>();
-
-    // Restaurant initializer
-    public Restaurant(String[] staff) {
-        for (int i = 0; i < staff.length; i++) {
-            waitstaff.add(new Waitstaff(staff[i]));
-        }
-    }
 
     public Restaurant() {}
 
@@ -159,13 +151,30 @@ class Restaurant {
             }
             else {
                 t.seat(gnum);
+                if (t.getStaff().equals("NONE")) {
+                    assignToTable(waitstaff.get(0).getName(), tblnum);
+                }
                 return 0;
             }
         }
         else {
             System.out.println("Table is already being used.");
         }
+
+
         return 1;
+    }
+
+
+    // Helper function that generates ID's for new Waitstaff
+    private int generateID() {
+        if (waitstaff.size() == 0) {
+            return 0;
+        }
+        int id = 0;
+        Waitstaff last = waitstaff.get(waitstaff.size() - 1);
+        id = Integer.valueOf(last.getID()) + 1;
+        return id;
     }
 
     // Adds staff to waistaff
@@ -175,7 +184,7 @@ class Restaurant {
             return 1;
         }
 
-        waitstaff.add(new Waitstaff(name));
+        waitstaff.add(new Waitstaff(name, "" + generateID()));
         return 0;
     }
 
@@ -286,9 +295,11 @@ class Restaurant {
             return 1;
         }
         Waitstaff staff = getStaff(table.getStaff());
-        staff.addToTotal(table.calcDue());
+        if (staff != null) {
+            staff.addToTotal(table.calcDue());
+        }
         // Adjusting stat numbers on all items on the bill
-        ArrayList<Item> b = table.getBill();
+        ArrayList<Item> b = table.getBill().getItems();
         Iterator<Item> biter = b.iterator();
         while (biter.hasNext()) {
             Item bItem = biter.next();
@@ -327,12 +338,14 @@ class Restaurant {
         while (iter.hasNext()) {
             Table current = iter.next();
             Waitstaff s = getStaff(current.getStaff());
-            double tot = s.getTotal();
-            if (tot < min) {
-                // 5hr == 300 min for breaks
-                if (s.getTimeWorked() < 300.0) {
-                    rec = current.getNum();
-                    min = s.getTotal();
+            if (s != null) {
+                double tot = s.getTotal();
+                if (tot < min) {
+                    // 5hr == 300 min for breaks
+                    if (s.getTimeWorked() < 300.0) {
+                        rec = current.getNum();
+                        min = s.getTotal();
+                    }
                 }
             }
         }
@@ -347,7 +360,7 @@ class Restaurant {
         Scanner scanner = new Scanner(System.in);
         Restaurant r = new Restaurant();
 
-        r.addToInventory(new Item("Chicken", 9.99));
+
         System.out.println("+---------------------------------------------+");
         if (r.numOfTables() < 1) {
             boolean done = false;
