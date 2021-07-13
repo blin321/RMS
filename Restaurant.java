@@ -5,16 +5,8 @@ class Restaurant {
     private ArrayList<Table> tables = new ArrayList<>();
     private ArrayList<Waitstaff> waitstaff = new ArrayList<>();
     private ArrayList<Item> inventory = new ArrayList<>();
-
     // Tracks how many of the items in inventory have been sold.
     private ArrayList<Integer> stats = new ArrayList<>();
-
-    // Restaurant initializer
-    public Restaurant(String[] staff) {
-        for (int i = 0; i < staff.length; i++) {
-            waitstaff.add(new Waitstaff(staff[i]));
-        }
-    }
 
     public Restaurant() {}
 
@@ -168,6 +160,18 @@ class Restaurant {
         return 1;
     }
 
+
+    // Helper function that generates ID's for new Waitstaff
+    private int generateID() {
+        if (waitstaff.size() == 0) {
+            return 0;
+        }
+        int id = 0;
+        Waitstaff last = waitstaff.get(waitstaff.size() - 1);
+        id = Integer.valueOf(last.getID()) + 1;
+        return id;
+    }
+
     // Adds staff to waistaff
     public int addStaff(String name) {
         if (waitstaff.contains(name)) {
@@ -175,7 +179,7 @@ class Restaurant {
             return 1;
         }
 
-        waitstaff.add(new Waitstaff(name));
+        waitstaff.add(new Waitstaff(name, "" + generateID()));
         return 0;
     }
 
@@ -288,7 +292,7 @@ class Restaurant {
         Waitstaff staff = getStaff(table.getStaff());
         staff.addToTotal(table.calcDue());
         // Adjusting stat numbers on all items on the bill
-        ArrayList<Item> b = table.getBill();
+        ArrayList<Item> b = table.getBill().getItems();
         Iterator<Item> biter = b.iterator();
         while (biter.hasNext()) {
             Item bItem = biter.next();
@@ -347,7 +351,7 @@ class Restaurant {
         Scanner scanner = new Scanner(System.in);
         Restaurant r = new Restaurant();
 
-        r.addToInventory(new Item("Chicken", 9.99));
+
         System.out.println("+---------------------------------------------+");
         if (r.numOfTables() < 1) {
             boolean done = false;
